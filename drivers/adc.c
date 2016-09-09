@@ -63,9 +63,6 @@ static struct tADCHandler adc_handler;
 //******************************************************************************
 //  Секция локальных функций
 //******************************************************************************
-
-#include "uart_.h"
-
 void __attribute__((interrupt, no_auto_psv)) _ADC1Interrupt(void)
 {
 	uint8_t ch;

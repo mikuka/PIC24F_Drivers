@@ -17,6 +17,7 @@
 
 #define UART_9BIT_NO_PARITY			0x03
 #define UART_IRQ_MODE_TX_BUF_EMPTY	0x02	// Прерывание по опустошению буфера
+#define UART_IRQ_MODE_TX_OUT_SHIFT	0x01	// Прерывание по сдвигового регистра
 #define UART_IRQ_MODE_RX_ANY_CHAR	0x00	// Прерывание по каждому символу
 
 //******************************************************************************
@@ -63,21 +64,24 @@ static struct tUART_Data UART_Data[NUART] = {
 //******************************************************************************
 void __attribute__((interrupt, no_auto_psv)) _U1RXInterrupt(void)
 {
+	IFS0 &= ~_IFS0_U1RXIF_MASK;
 }
 
 void __attribute__((interrupt, no_auto_psv)) _U1TXInterrupt(void)
 {
-	IRQ_ClearStatus(irqUART1_Transmitter);
-	static char c = 0;
-	U1TXREG = c++;
+	IFS0 &= ~_IFS0_U1TXIF_MASK;
+//	if (U1STA & _U1STA_TRMT_MASK)	// Errata 52. Module: UART (Transmit Interrupt)
+//		U1TXREG = 0x33;
 }
 
 void __attribute__((interrupt, no_auto_psv)) _U2RXInterrupt(void)
 {
+	IFS1 &= ~_IFS1_U2RXIF_MASK;
 }
 
 void __attribute__((interrupt, no_auto_psv)) _U2TXInterrupt(void)
 {
+	IFS1 &= ~_IFS1_U2TXIF_MASK;
 }
 
 static uint16_t CalcBaudrate(uint32_t rate, bool high_speed_mode)
@@ -85,7 +89,7 @@ static uint16_t CalcBaudrate(uint32_t rate, bool high_speed_mode)
 	uint16_t value;
 
 	if (high_speed_mode) {
-		value = FCY / 4 / rate - 1;
+		value = (uint16_t)(FCY / 4 / rate) - 1;
 	} else {
 		value = FCY / 16 / rate - 1;
 	}
@@ -105,7 +109,7 @@ void UART_Init(tUART name, const tUART_Cfg *cfg)
 
 	/* Настройка блока, Wake-up, Loopback, Auto-Baud, IRDA 
 	   по умолчанию выключены */
-	*UxMODE =_U1MODE_USIDL_MASK;	// 1 - останов в спящем режима
+	*UxMODE = _U1MODE_USIDL_MASK;	// 1 - останов в спящем режима
 	*UxMODE |= (cfg->flow_ctrl << _U1MODE_UEN0_POSITION);	// настройка апп. управления потоком
 	/* Длина посылки, 9 бит доступны только без паритета */
 	if (cfg->data_bits == 9) {
@@ -123,11 +127,21 @@ void UART_Init(tUART name, const tUART_Cfg *cfg)
 	*UxBRG = CalcBaudrate(cfg->baudrate, high_speed_mode);
 	/* Настройка прерываний, по умолчанию Address Detect mode и IRDA
 	   выключены */
-	*UxSTA = (UART_IRQ_MODE_TX_BUF_EMPTY << _U1STA_UTXISEL0_POSITION);// Прерывание передатчика
+	*UxSTA = (UART_IRQ_MODE_TX_OUT_SHIFT << _U1STA_UTXISEL0_POSITION);// Прерывание передатчика
 	*UxSTA |= (UART_IRQ_MODE_RX_ANY_CHAR << _U1STA_URXISEL0_POSITION);// Прерывание приемника
-	*UxSTA |= _U1STA_UTXEN_MASK;	// Вкл. передатчика
-
 	*UxMODE |= _U1MODE_UARTEN_MASK;	// Вкл. модуля
+	*UxSTA |= _U1STA_UTXEN_MASK;	// Вкл. передатчика
+}
+
+char UART_PutChar(tUART name, char c)
+{
+	volatile uint16_t *base_reg = UART_Data[name].base_addr;
+	volatile uint16_t *UxSTA = UART_STA_REG(base_reg);
+	volatile uint16_t *UxTX = UART_TXREG_REG(base_reg);
+	/* Ожидание опустошения буфера */
+	while ((*UxSTA & _U1STA_UTXBF_MASK));
+    *UxTX = c;
+	return c;
 }
 
 //******************************************************************************

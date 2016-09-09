@@ -108,16 +108,55 @@
 #define RPOR_OFFSET(n, reg)         (reg + n / 2)
 #define PPS_VALUE_MASK              0x1f
 #define PPS_OUTPUT(pps, fn)         do { PPS_UNLOCK; \
-                                    *RPOR_OFFSET(pps, RPOR_BASE_ADDR) |= \
-                                    ((fn & PPS_VALUE_MASK) << 8 * (pps % 2)); \
+                                    MODIFICATION_REGISTER(*RPOR_OFFSET(pps, \
+                                        RPOR_BASE_ADDR), 8, (pps % 2), \
+                                        PPS_VALUE_MASK, (fn & PPS_VALUE_MASK)); \
                                     PPS_LOCK; } while(0)
-/*
-	__builtin_write_OSCCONL(OSCCONL & ~_OSCCON_IOLOCK_MASK);	// разрешить ремап портов
-	// TODO - настройки портов вынести в драйвер PPS 
-	// port PB10 - RP10 - OC3 Output
-	RPOR5bits.RP10R = _RPOUT_OC1;	// 18
-	__builtin_write_OSCCONL(OSCCONL | _OSCCON_IOLOCK_MASK);	// запретить ремап портов
-        */
+
+#define RPOUT_C1OUT 1
+#define RPOUT_C2OUT 2
+#define RPOUT_U1TX 3
+#define RPOUT_U1RTS 4
+#define RPOUT_U2TX 5
+#define RPOUT_U2RTS 6
+#define RPOUT_SDO1 7
+#define RPOUT_SCK1OUT 8
+#define RPOUT_SS1OUT 9
+#define RPOUT_SDO2 10
+#define RPOUT_SCK2OUT 11
+#define RPOUT_SS2OUT 12
+#define RPOUT_OC1 18
+#define RPOUT_OC2 19
+#define RPOUT_OC3 20
+#define RPOUT_OC4 21
+#define RPOUT_OC5 22
+
+#define RPINR_BASE_ADDR             &RPINR0
+#define RPINR_OFFSET(n, reg)        (reg + n / 2)
+#define PPS_INPUT(fn, pps)          do { PPS_UNLOCK; \
+                                    MODIFICATION_REGISTER(*RPINR_OFFSET(pps, \
+                                        RPINR_BASE_ADDR), 8, (pps % 2), \
+                                        PPS_VALUE_MASK, (fn & PPS_VALUE_MASK)); \
+                                    PPS_LOCK; } while(0)
+
+#define RPINP_INT1 1
+#define RPINP_INT2 2
+#define RPINP_T2CK 6
+#define RPINP_T3CK 7
+#define RPINP_T4CK 8
+#define RPINP_T5CK 9
+#define RPINP_IC1 14
+#define RPINP_IC2 15
+#define RPINP_IC3 16
+#define RPINP_IC4 17
+#define RPINP_IC5 18
+#define RPINP_OCFA 22
+#define RPINP_OCFB 23
+#define RPINP_U1RX 36
+#define RPINP_U1CTS 37
+#define RPINP_U2RX 38
+#define RPINP_U2CTS 39
+
 
 //******************************************************************************
 //  Секция объявления типов
