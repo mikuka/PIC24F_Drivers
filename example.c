@@ -81,16 +81,17 @@ int main(void)
 	Timer16_Init(T1, TIM_PRSC8);
 	Timer16_SetPeriodMs(T1, 1000);
 	IRQ_SetPriority(irqTimer1, 2);
-	IRQ_ClearStatus(irqTimer1);
-	IRQ_Enable(irqTimer1);	
+	IRQ_ClearFlag(irqTimer1);
+	IRQ_Enable(irqTimer1);
+	Timer16_Start(T1);
 
-	Timer16_Init(T2, TIM_PRSC256);
+	/*Timer16_Init(T2, TIM_PRSC256);
 	Timer16_SetPeriodMs(T2, 1000);
 	IOPORT_SET_DIR(B, 10, OUT_FUNC_MODE);
 	PPS_OUTPUT(10, _RPOUT_OC1);
 	Timer16_PWM_Setup(T2, tCH1, 1000);
 	Timer16_PWM_SetDutyCycle(T2, tCH1, 50);
-	Timer16_Start(T2);
+	Timer16_Start(T2);*/
 	
 	IOPORT_SET_DIR(C, 8, OUT_FUNC_MODE);
 	IOPORT_SET_DIR(C, 9, INP_FUNC_MODE);
@@ -105,12 +106,31 @@ int main(void)
 	uart_cfg.parity = pNONE;
 	UART_Init(nUART1, &uart_cfg);
 
+	IRQ_SetPriority(irqUART1_Receiver, 4);
+	IRQ_ClearFlag(irqUART1_Receiver);
+	IRQ_Enable(irqUART1_Receiver);
 	IRQ_SetPriority(irqUART1_Transmitter, 5);
-	IRQ_ClearStatus(irqUART1_Transmitter);
+	IRQ_ClearFlag(irqUART1_Transmitter);
 	IRQ_Enable(irqUART1_Transmitter);
 
+	static int cnt;
+	char ch;
+
+	volatile int i;
+	for (i = 0; i < 1000; i++);
+
+	uint8_t rx[8];
+	static uint8_t tx[8] = {"Hello!\r\0"};
 	for ( ;; ) {
-		UART_PutChar(nUART1, 0x30);
+ 		cnt = GetSysTickCounter();
+		/*while (!UART_GetFlag(nUART1, flRX_Available));
+		ch = UART_GetChar(nUART1);
+		while (!UART_GetFlag(nUART1, flTX_Complete));
+		UART_PutChar(nUART1, ch);*/
+		UART_ReceiveByteBlock(nUART1, rx, sizeof(rx));
+		while(!UART_ReceiveBlockComplete(nUART1));
+		UART_SendByteBlock(nUART1, rx, sizeof(rx));
+		while(!UART_SendBlockComplete(nUART1));
 	}
 	return 0;
 }

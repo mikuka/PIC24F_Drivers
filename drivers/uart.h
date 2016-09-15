@@ -6,6 +6,7 @@
 //******************************************************************************
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 //******************************************************************************
 //  Секция определения макросов
@@ -45,6 +46,13 @@ typedef enum
     fBCLK,
 }tUART_FlowControl;
 
+typedef enum
+{
+    flRX_Available = 0x01,
+    flTX_Complete = 0x100,
+    flTX_BuffFull = 0x200,            
+}tUART_Flag;
+
 typedef struct
 {
     uint32_t baudrate;
@@ -64,6 +72,12 @@ typedef struct
 //******************************************************************************
 void UART_Init(tUART name, const tUART_Cfg *cfg);
 char UART_PutChar(tUART name, char c);
+char UART_GetChar(tUART name);
+bool UART_GetFlag(tUART name, tUART_Flag flag);
+bool UART_SendByteBlock(tUART name, const uint8_t *buf, size_t len);
+bool UART_ReceiveByteBlock(tUART name, uint8_t *buf, size_t len);
+bool UART_SendBlockComplete(tUART name);
+bool UART_ReceiveBlockComplete(tUART name);
 
 //******************************************************************************
 //  Конец файла

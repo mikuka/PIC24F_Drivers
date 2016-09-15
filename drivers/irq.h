@@ -147,12 +147,20 @@ inline static void IRQ_SetPriority(tIRQ_Num irq, int8_t pri)
     }
 }
 
-inline static void IRQ_ClearStatus(tIRQ_Num irq)
+inline static void IRQ_ClearFlag(tIRQ_Num irq)
 {
 	volatile uint16_t *pifs = IRQ_REG_ADDR(irq, IRQ_IFS_BASE_ADDR);
 	/* Защита от выхода за границы регистров IECx */
 //	if (pifs <= IRQ_IFS_FINAL_ADDR)
 	*pifs &= ~IRQ_BIT_OFFSET(irq);
+}
+
+inline static void IRQ_SetFlag(tIRQ_Num irq)
+{
+	volatile uint16_t *pifs = IRQ_REG_ADDR(irq, IRQ_IFS_BASE_ADDR);
+	/* Защита от выхода за границы регистров IECx */
+//	if (pifs <= IRQ_IFS_FINAL_ADDR)
+	*pifs |= IRQ_BIT_OFFSET(irq);
 }
 
 inline static bool IRQ_GetStatus(tIRQ_Num irq)

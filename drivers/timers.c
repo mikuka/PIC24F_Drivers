@@ -164,7 +164,8 @@ void Timer16_Init(tTimer timer, tTimPrescaler prescaler)
 		prsc = 64;
 	else if (prescaler == TIM_PRSC256)
 		prsc = 256;
-
+	else
+		prsc = 256;
 	Timers[timer].clock = FCY / prsc;
 }
 
@@ -238,7 +239,7 @@ bool Timer16_SetPeriodUs(tTimer timer, uint32_t usec)
 {
 	uint32_t value;
 
-	value = Timer16_GetValueClock(timer) * usec / 1000000;
+	value = Timer16_GetValueClock(timer) / usec / 1000;
 	return SetPeriod(timer, value);
 }
 
@@ -246,7 +247,7 @@ bool Timer16_SetPeriodMs(tTimer timer, uint32_t msec)
 {
 	uint32_t value;
 
-	value = Timer16_GetValueClock(timer) * msec / 1000;
+	value = Timer16_GetValueClock(timer) / msec;
 	return SetPeriod(timer, value);
 }
 
