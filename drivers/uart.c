@@ -2,6 +2,7 @@
 //  Секция включения заголовочных файлов
 //******************************************************************************
 #include <p24FJ64GA004.h>
+#include "type.h"
 #include "uart.h"
 #include "irq.h"
 #include "../delay.h"
@@ -25,12 +26,6 @@
 //******************************************************************************
 //  Секция объявления типов
 //******************************************************************************
-typedef struct 
-{
-	uint8_t *buf;
-	size_t len;
-}tDatab;
-
 /* Структура с буферами данных */
 struct tUART_Exchange
 {
@@ -44,12 +39,6 @@ struct tUART_Buffer
 	volatile struct tUART_Exchange rx;
 	volatile struct tUART_Exchange tx;	
 };
-
-/*struct tUART_Buffer
-{
-	uint16_t rx;
-	uint16_t tx;
-};*/
 
 struct tUART_Handler
 {
@@ -269,7 +258,7 @@ char UART_PutChar(tUART name, char c)
 	volatile uint16_t *UxTX = UART_TXREG_REG(base_reg);
 	/* Ожидание опустошения буфера */
 	while (*UxSTA & _U1STA_UTXBF_MASK);
-    *UxTX = c;
+	*UxTX = c;
 	return c;
 }
 
@@ -297,7 +286,6 @@ bool UART_SendByteBlock(tUART name, const uint8_t *buf, size_t len)
 			UART->buffer.tx.complete = false;
 			UART->buffer.tx.data.buf = (uint8_t *)buf;
 			UART->buffer.tx.data.len = len;
-			//TransmitEnable(name);
 			IRQ_SetFlag(irqUART1_Transmitter);
 		}
 	}
@@ -318,14 +306,23 @@ bool UART_ReceiveByteBlock(tUART name, uint8_t *buf, size_t len)
 }
 
 
-bool UART_SendBlockComplete(tUART name)
+bool UART_SendBlockIsComplete(tUART name)
 {
 	return UART_Data[name].buffer.tx.complete;	
 }
 
-bool UART_ReceiveBlockComplete(tUART name)
+bool UART_ReceiveBlockIsComplete(tUART name)
 {
-	return UART_Data[name].buffer.rx.complete;	
+	static bool prev_flag = false;
+	/* Алгоритм сброса флагов при чтении состояния флага, чтобы исключить 
+	   возникновение циклической передачи */
+	bool ret = false;
+	if (!prev_flag && UART_Data[name].buffer.rx.complete) {
+		UART_Data[name].buffer.rx.complete = false;
+		ret = true;
+	}
+	prev_flag = UART_Data[name].buffer.rx.complete;
+	return ret;
 }
 
 //******************************************************************************

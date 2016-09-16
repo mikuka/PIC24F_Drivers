@@ -7,6 +7,7 @@
 #include "drivers/uart.h"
 #include "drivers/timers.h"
 #include "drivers/pwm.h"
+#include "../pc_packet.h"
 
 //******************************************************************************
 //  Секция определения макросов
@@ -31,11 +32,11 @@
 #pragma config WINDIS = ON              // Watchdog Timer Window (Standard Watchdog Timer enabled,(Windowed-mode is disabled))
 #pragma config FWDTEN = OFF             // Watchdog Timer Enable (Watchdog Timer is disabled)
 #pragma config ICS = PGx1               // Comm Channel Select (Emulator EMUC1/EMUD1 pins are shared with PGC1/PGD1)
-#pragma config COE = OFF    // Set Clip On Emulation Mode->Reset Into Operational Mode
-#pragma config BKBUG = OFF    // Background Debug->Device resets into Operational mode
-#pragma config GWRP = OFF    // General Code Segment Write Protect->Writes to program memory are allowed
-#pragma config GCP = OFF    // General Code Segment Code Protect->Code protection is disabled
-#pragma config JTAGEN = OFF    // JTAG Port Enable->JTAG port is disabled
+#pragma config COE = OFF				// Set Clip On Emulation Mode->Reset Into Operational Mode
+#pragma config BKBUG = OFF				// Background Debug->Device resets into Operational mode
+#pragma config GWRP = OFF				// General Code Segment Write Protect->Writes to program memory are allowed
+#pragma config GCP = OFF				// General Code Segment Code Protect->Code protection is disabled
+#pragma config JTAGEN = OFF				// JTAG Port Enable->JTAG port is disabled
 
 //******************************************************************************
 //  Секция объявления типов
@@ -57,9 +58,13 @@
 //  Секция объявления локальных переменных
 //******************************************************************************
 
+static tPC_RequestPacket PC_RequestPacket;
+static tPC_ResponsePacket PC_ResponsePacket;
+
 //******************************************************************************
 //  Секция прототипов функций
 //******************************************************************************
+extern int debug(const char *format, ...);
 
 //******************************************************************************
 //  Секция локальных функций
@@ -127,10 +132,18 @@ int main(void)
 		ch = UART_GetChar(nUART1);
 		while (!UART_GetFlag(nUART1, flTX_Complete));
 		UART_PutChar(nUART1, ch);*/
-		UART_ReceiveByteBlock(nUART1, rx, sizeof(rx));
-		while(!UART_ReceiveBlockComplete(nUART1));
+		/*UART_ReceiveByteBlock(nUART1, rx, sizeof(rx));
+		while(!UART_ReceiveBlockIsComplete(nUART1));
 		UART_SendByteBlock(nUART1, rx, sizeof(rx));
-		while(!UART_SendBlockComplete(nUART1));
+		while(!UART_SendBlockIsComplete(nUART1));*/
+//		debug("Hello! %d, %d\r\n", sizeof(PC_ResponsePacket), sizeof(PC_ResponsePacket.state));
+		if (PC_Request(&PC_RequestPacket)) {
+			PC_ResponsePacket.func = PC_RequestPacket.func; 
+			PC_ResponsePacket.state = stACK;
+			PC_ResponsePacket.number = 1;
+			PC_ResponsePacket.data_len = 0;
+			PC_Response(&PC_ResponsePacket);	
+		}
 	}
 	return 0;
 }
